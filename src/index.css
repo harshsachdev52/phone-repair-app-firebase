@@ -301,10 +301,12 @@ tr.clickable:hover {
   .no-print, .sidebar, .btn, .modal-overlay, .hide-on-print {
     display: none !important;
   }
-  .main-content {
+  .app-container, .main-content {
+    display: block !important;
     padding: 0 !important;
     overflow: visible !important;
     height: auto !important;
+    min-height: auto !important;
   }
   .print-invoice {
     display: block !important;
