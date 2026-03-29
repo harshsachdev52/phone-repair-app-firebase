@@ -318,3 +318,77 @@ tr.clickable:hover {
 .print-invoice {
   display: none;
 }
+
+/* --- Mobile Responsiveness --- */
+.hide-on-desktop {
+  display: none;
+}
+
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 30;
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .hide-on-desktop {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .md-hidden {
+    display: block;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .sidebar-open {
+    transform: translateX(0);
+  }
+
+  .mobile-overlay {
+    display: block;
+  }
+
+  .main-content {
+    padding: 1rem;
+    height: auto;
+    overflow-y: visible;
+  }
+
+  /* Responsive Grids */
+  .grid-cols-4, .grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Dashboard Header */
+  .flex.justify-between.items-center.mb-6 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .md-hidden {
+    display: none;
+  }
+}
