@@ -1,50 +1,27 @@
 import { useState, useEffect } from 'react';
-
-const STORAGE_KEY = 'repair_jobs';
-
-// Initial dummy data
-const initialJobs = [
-  {
-    id: 'JS-20240321-001',
-    customerName: 'John Doe',
-    whatsapp: '9876543210',
-    brand: 'Apple',
-    model: 'iPhone 13',
-    imei: '358123456789012',
-    problem: 'Screen cracked',
-    quotedPrice: 150,
-    status: 'Received',
-    createdAt: new Date().toISOString(),
-    timeline: [
-      { status: 'Received', date: new Date().toISOString() }
-    ],
-    payment: null
-  }
-];
+import { db } from '../firebase';
+import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 export const useStore = () => {
-  const [jobs, setJobs] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return initialJobs;
-      }
-    }
-    return initialJobs;
-  });
+  const [jobs, setJobs] = useState([]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs));
-  }, [jobs]);
+    const unsubscribe = onSnapshot(collection(db, 'jobs'), (snapshot) => {
+      const jobsData = snapshot.docs.map(doc => doc.data());
+      // Sort jobs by createdAt descending
+      jobsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setJobs(jobsData);
+    });
 
-  const addJob = (jobData) => {
+    return () => unsubscribe();
+  }, []);
+
+  const addJob = async (jobData) => {
     const today = new Date();
     const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
     
     // Generate unique index for the day
-    const todaysJobs = jobs.filter(j => j.id.includes(dateStr));
+    const todaysJobs = jobs.filter(j => j.id && j.id.includes(dateStr));
     const nextIdx = String(todaysJobs.length + 1).padStart(3, '0');
     const newId = `JS-${dateStr}-${nextIdx}`;
 
@@ -57,39 +34,49 @@ export const useStore = () => {
       payment: null
     };
 
-    setJobs(prev => [newJob, ...prev]);
-    return newId;
+    try {
+      await setDoc(doc(db, 'jobs', newId), newJob);
+      return newId;
+    } catch (error) {
+      console.error("Error adding job: ", error);
+      throw error;
+    }
   };
 
-  const updateJobStatus = (id, newStatus) => {
-    setJobs(prev => prev.map(job => {
-      if (job.id === id) {
-        return {
-          ...job,
-          status: newStatus,
-          timeline: [...job.timeline, { status: newStatus, date: new Date().toISOString() }]
-        };
-      }
-      return job;
-    }));
+  const updateJobStatus = async (id, newStatus) => {
+    const jobToUpdate = jobs.find(job => job.id === id);
+    if (!jobToUpdate) return;
+
+    const newTimeline = [...(jobToUpdate.timeline || []), { status: newStatus, date: new Date().toISOString() }];
+
+    try {
+      await updateDoc(doc(db, 'jobs', id), {
+        status: newStatus,
+        timeline: newTimeline
+      });
+    } catch (error) {
+      console.error("Error updating job status: ", error);
+    }
   };
 
-  const processPayment = (id, paymentData) => {
-    setJobs(prev => prev.map(job => {
-      if (job.id === id) {
-        return {
-          ...job,
-          payment: { ...paymentData, date: new Date().toISOString() }
-        };
-      }
-      return job;
-    }));
+  const processPayment = async (id, paymentData) => {
+    try {
+      await updateDoc(doc(db, 'jobs', id), {
+        payment: { ...paymentData, date: new Date().toISOString() }
+      });
+    } catch (error) {
+      console.error("Error processing payment: ", error);
+    }
   };
 
   const getJob = (id) => jobs.find(j => j.id === id);
 
-  const deleteJob = (id) => {
-    setJobs(prev => prev.filter(job => job.id !== id));
+  const deleteJob = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'jobs', id));
+    } catch (error) {
+      console.error("Error deleting job: ", error);
+    }
   };
 
   return { jobs, addJob, updateJobStatus, processPayment, getJob, deleteJob };

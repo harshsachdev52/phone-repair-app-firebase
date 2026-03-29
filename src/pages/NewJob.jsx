@@ -19,14 +19,19 @@ export default function NewJob() {
   const [approved, setApproved] = useState(false);
   const [generatedJob, setGeneratedJob] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!approved) {
       alert('Customer must approve the repair before generating a job sheet.');
       return;
     }
-    const newId = addJob(formData);
-    setGeneratedJob({ ...formData, id: newId });
+    try {
+      const newId = await addJob(formData);
+      setGeneratedJob({ ...formData, id: newId });
+    } catch (error) {
+      console.error(error);
+      alert('Failed to generate job sheet. Please try again.');
+    }
   };
 
   const handleWhatsAppShare = () => {
