@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 
 export default function NewJob() {
-  const { addJob } = useStore();
+  const { addJob, jobs } = useStore();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -18,20 +18,58 @@ export default function NewJob() {
   });
   const [approved, setApproved] = useState(false);
   const [generatedJob, setGeneratedJob] = useState(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
 
-  const handleSubmit = async (e) => {
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setFormData({ ...formData, customerName: value });
+    
+    if (value.trim().length > 0) {
+      const match = value.toLowerCase();
+      const matchedJobs = jobs.filter(
+        (job) => job.customerName.toLowerCase().includes(match)
+      );
+      
+      const uniqueCustomers = [];
+      const seenNames = new Set();
+      matchedJobs.forEach(job => {
+        const nameLower = job.customerName.toLowerCase();
+        if (!seenNames.has(nameLower)) {
+          seenNames.add(nameLower);
+          uniqueCustomers.push({
+            customerName: job.customerName,
+            whatsapp: job.whatsapp || '',
+            alternateNumber: job.alternateNumber || ''
+          });
+        }
+      });
+
+      setSuggestions(uniqueCustomers);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (customer) => {
+    setFormData({
+      ...formData,
+      customerName: customer.customerName,
+      whatsapp: customer.whatsapp,
+      alternateNumber: customer.alternateNumber
+    });
+    setShowSuggestions(false);
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!approved) {
       alert('Customer must approve the repair before generating a job sheet.');
       return;
     }
-    try {
-      const newId = await addJob(formData);
-      setGeneratedJob({ ...formData, id: newId });
-    } catch (error) {
-      console.error(error);
-      alert('Failed to generate job sheet. Please try again.');
-    }
+    const newId = addJob(formData);
+    setGeneratedJob({ ...formData, id: newId });
   };
 
   const handleWhatsAppShare = () => {
@@ -75,9 +113,37 @@ export default function NewJob() {
     <div className="card max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">New Job Intake</h1>
       <form onSubmit={handleSubmit}>
-        <div className="form-group">
+        <div className="form-group" style={{ position: 'relative' }}>
           <label className="form-label">Customer Name</label>
-          <input type="text" className="form-control" required value={formData.customerName} onChange={e => setFormData({...formData, customerName: e.target.value})} />
+          <input 
+            type="text" 
+            className="form-control" 
+            required 
+            value={formData.customerName} 
+            onChange={handleNameChange}
+            onFocus={() => {
+              if (suggestions.length > 0) setShowSuggestions(true);
+            }}
+            onBlur={() => setShowSuggestions(false)}
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute z-10 w-full bg-white border rounded shadow-lg max-h-48 overflow-y-auto mt-1" style={{borderColor: '#e2e8f0', top: '100%', left: 0}}>
+              {suggestions.map((s, idx) => (
+                <li 
+                  key={idx} 
+                  className="p-2 cursor-pointer hover:bg-slate-100 border-b last:border-0" 
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // prevent input blur from firing before click
+                    handleSuggestionClick(s);
+                  }}
+                  style={{borderColor: '#e2e8f0'}}
+                >
+                  <div className="font-semibold">{s.customerName}</div>
+                  <div className="text-xs text-slate-500">{s.whatsapp} {s.alternateNumber ? `/ ${s.alternateNumber}` : ''}</div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="form-group mb-0">

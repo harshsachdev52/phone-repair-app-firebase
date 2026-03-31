@@ -1,7 +1,14 @@
-import { NavLink } from 'react-router-dom';
-import { Home, PlusSquare, List, Wrench, X } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Home, PlusSquare, List, Wrench, X, LogOut } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose }) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    navigate('/login');
+  };
+
   return (
     <>
       <aside className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
@@ -28,6 +35,16 @@ export default function Sidebar({ isOpen, onClose }) {
             All Jobs
           </NavLink>
         </nav>
+        <div style={{ padding: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <button 
+            onClick={handleLogout} 
+            className="nav-item w-full" 
+            style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'transparent', border: 'none', color: 'inherit', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
+          </button>
+        </div>
       </aside>
       {isOpen && (
         <div className="mobile-overlay" onClick={onClose}></div>
